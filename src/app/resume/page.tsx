@@ -6,6 +6,7 @@ import { House, Upload, RefreshCw, FileText, AlertCircle, CheckCircle } from "lu
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+
 export default function ResumeUploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ export default function ResumeUploadPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    setError(null); // Clear previous errors
+    setError(null);
     
     if (!selectedFile) return;
 
@@ -27,7 +28,7 @@ export default function ResumeUploadPage() {
     }
 
     // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (selectedFile.size > maxSize) {
       setError("File size must be less than 10MB");
       setFile(null);
@@ -106,14 +107,60 @@ export default function ResumeUploadPage() {
         throw new Error("Invalid response structure from server");
       }
 
-      // Save data and stats in sessionStorage
+      // ✅ Save all data to sessionStorage
+      // 1. Tech skills data
       sessionStorage.setItem("techData", JSON.stringify(data.data));
+      console.log("✅ Saved techData:", data.data);
       
+      // 2. Stats data
       if (data.stats) {
         sessionStorage.setItem("techStats", JSON.stringify(data.stats));
+        console.log("✅ Saved techStats:", data.stats);
       }
 
-      console.log("✅ Data saved to sessionStorage, redirecting...");
+      // 3. ATS data
+      if (data.ats) {
+        sessionStorage.setItem("atsData", JSON.stringify(data.ats));
+        console.log("✅ Saved atsData:", data.ats);
+        console.log("   → ATS Score:", data.ats.score);
+        console.log("   → Feedback:", data.ats.feedback);
+      } else {
+        console.warn("⚠️ No ATS data in response");
+      }
+
+      // 4. Experience data (NEW)
+      if (data.experience) {
+        sessionStorage.setItem("experienceData", JSON.stringify(data.experience));
+        console.log("✅ Saved experienceData:", data.experience);
+        console.log("   → Found:", data.experience.found);
+        console.log("   → Count:", data.experience.count);
+        console.log("   → Entries:", data.experience.entries?.length || 0);
+      } else {
+        console.warn("⚠️ No experience data in response");
+      }
+
+      // 5. Projects data (NEW)
+      if (data.projects) {
+        sessionStorage.setItem("projectsData", JSON.stringify(data.projects));
+        console.log("✅ Saved projectsData:", data.projects);
+        console.log("   → Found:", data.projects.found);
+        console.log("   → Count:", data.projects.count);
+        console.log("   → Entries:", data.projects.entries?.length || 0);
+      } else {
+        console.warn("⚠️ No projects data in response");
+      }
+
+      // Verify all data was saved
+      const verifyATS = sessionStorage.getItem("atsData");
+      const verifyExperience = sessionStorage.getItem("experienceData");
+      const verifyProjects = sessionStorage.getItem("projectsData");
+      
+      console.log("🔍 Verification:");
+      console.log("   - atsData:", verifyATS ? "✓" : "✗");
+      console.log("   - experienceData:", verifyExperience ? "✓" : "✗");
+      console.log("   - projectsData:", verifyProjects ? "✓" : "✗");
+
+      console.log("✅ All data saved to sessionStorage, redirecting...");
 
       // Redirect to tech stack page
       router.push("/extract-tech");
@@ -145,7 +192,7 @@ export default function ResumeUploadPage() {
         </h1>
 
         <p className="text-xl md:text-2xl mb-8 text-gray-700">
-          Upload your resume and let the AI read your tech stack.
+          Upload your resume and let AI extract skills, experience, and projects.
         </p>
 
         {/* Error Display */}
@@ -250,12 +297,18 @@ export default function ResumeUploadPage() {
               <RefreshCw className="animate-spin text-blue-600" size={24} />
               <div className="text-left">
                 <p className="text-blue-800 font-semibold">Processing your resume...</p>
-                <p className="text-blue-600 text-sm">This may take a few seconds</p>
+                <p className="text-blue-600 text-sm">Extracting skills, experience & projects</p>
               </div>
             </div>
           </div>
         )}
+
+        
+        
       </div>
     </div>
   );
 }
+
+// Add missing imports at the top
+
