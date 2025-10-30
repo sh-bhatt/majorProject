@@ -4,9 +4,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import pdfParse from "@cedrugs/pdf-parse";
 
-/* -------------------------------------------------------
-   🔹 Categorized Tech Keyword Groups (4 Buckets)
--------------------------------------------------------- */
+
 const TECH_KEYWORDS = {
   programming_languages: [
     "python", "java", "c++" ,"C++", "c", "javascript", "typescript",
@@ -54,9 +52,7 @@ const TECH_KEYWORDS = {
   ]
 };
 
-/* -------------------------------------------------------
-   🔹 Keyword Aliases
--------------------------------------------------------- */
+
 const TECH_ALIASES = {
   "node.js": ["nodejs", "node js"],
   "next.js": ["nextjs", "next js"],
@@ -79,9 +75,7 @@ const TECH_ALIASES = {
   "nlp": ["natural language processing"]
 };
 
-/* -------------------------------------------------------
-   🔹 Section Headers for Experience & Projects
--------------------------------------------------------- */
+
 const SECTION_HEADERS = {
   experience: [
     "work experience", "professional experience", "employment history",
@@ -95,16 +89,12 @@ const SECTION_HEADERS = {
   ]
 };
 
-/* -------------------------------------------------------
-   🔹 Date Pattern Extraction
--------------------------------------------------------- */
+
 const DATE_PATTERNS = {
   dateRange: /((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*\d{4}|(?:\d{1,2}\/\d{4})|(?:\d{4}))\s*(?:-|–|to|until)\s*((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*\d{4}|(?:\d{1,2}\/\d{4})|(?:\d{4})|Present|Current|Now)/gi
 };
 
-/* -------------------------------------------------------
-   🔹 Extract Sections from Resume Text
--------------------------------------------------------- */
+
 function extractSection(text, sectionKeywords) {
   const lines = text.split('\n').filter(line => line.trim().length > 0);
   
@@ -144,9 +134,7 @@ function extractSection(text, sectionKeywords) {
   return lines.slice(startIndex, endIndex).join('\n');
 }
 
-/* -------------------------------------------------------
-   🔹 Extract Technologies from Text Block
--------------------------------------------------------- */
+
 function extractTechnologiesFromText(text) {
   const found = new Set();
   const lowerText = text.toLowerCase();
@@ -194,9 +182,7 @@ function extractTechnologiesFromText(text) {
   return Array.from(found);
 }
 
-/* -------------------------------------------------------
-   🔹 Parse Experience Entries
--------------------------------------------------------- */
+
 function parseExperience(experienceText) {
   if (!experienceText) return [];
 
@@ -248,9 +234,7 @@ function parseExperience(experienceText) {
   return experiences;
 }
 
-/* -------------------------------------------------------
-   🔹 Parse Project Entries
--------------------------------------------------------- */
+
 function parseProjects(projectText) {
   if (!projectText) return [];
 
@@ -367,9 +351,7 @@ function parseProjects(projectText) {
   return projects;
 }
 
-/* -------------------------------------------------------
-   🔹 Keyword Matching Logic
--------------------------------------------------------- */
+
 function keywordExists(keyword, text) {
   const normalized = text
     .replace(/c\s*\+\s*\+/gi, "c++")
@@ -386,9 +368,7 @@ function keywordExists(keyword, text) {
   return regex.test(normalized);
 }
 
-/* -------------------------------------------------------
-   🔹 ATS Scoring Logic
--------------------------------------------------------- */
+
 function calculateATSScore(text, detected) {
   const originalText = text;
   const lowerText = text.toLowerCase();
@@ -478,9 +458,7 @@ function calculateATSScore(text, detected) {
   };
 }
 
-/* -------------------------------------------------------
-   🔹 NEW: Generate Detailed Resume Improvement Suggestions
--------------------------------------------------------- */
+
 function generateDetailedSuggestions(originalText, detected, experiences, projects, ats) {
   const suggestions = {
     critical: [],
@@ -493,7 +471,7 @@ function generateDetailedSuggestions(originalText, detected, experiences, projec
   const lowerText = originalText.toLowerCase();
   const totalKeywords = Object.values(detected).flat().length;
 
-  // CRITICAL ISSUES
+  
   if (!/@[a-z0-9.-]+\.[a-z]{2,}/i.test(originalText)) {
     suggestions.critical.push({
       issue: "Missing email address",
@@ -534,7 +512,7 @@ function generateDetailedSuggestions(originalText, detected, experiences, projec
     }
   }
 
-  // IMPORTANT IMPROVEMENTS
+  
   if (totalKeywords < 15) {
     const missingCategories = [];
     Object.entries(detected).forEach(([category, keywords]) => {
@@ -571,7 +549,7 @@ function generateDetailedSuggestions(originalText, detected, experiences, projec
     });
   }
 
-  // CONTENT QUALITY CHECKS
+  
   if (projects && projects.length > 0) {
     projects.forEach((project) => {
       if (project.description.length < 50) {
@@ -625,7 +603,7 @@ function generateDetailedSuggestions(originalText, detected, experiences, projec
     });
   }
 
-  // KEYWORD OPTIMIZATION
+  
   const detectedLangs = detected.programming_languages || [];
   const detectedTech = detected.technologies || [];
   
@@ -665,7 +643,7 @@ function generateDetailedSuggestions(originalText, detected, experiences, projec
     });
   }
 
-  // FORMATTING TIPS
+ 
   if (originalText.length < 800) {
     suggestions.formattingTips.push({
       issue: "Resume content is too brief",
@@ -710,9 +688,7 @@ function generateDetailedSuggestions(originalText, detected, experiences, projec
   };
 }
 
-/* -------------------------------------------------------
-   🔹 PDF Tech Extraction Endpoint
--------------------------------------------------------- */
+
 export async function POST(req: Request) {
   try {
     console.log("📄 API /extract-tech triggered");
@@ -783,7 +759,7 @@ export async function POST(req: Request) {
 
     const ats = calculateATSScore(originalText, detected);
 
-    // ✅ NEW: Generate detailed improvement suggestions
+    
     const detailedSuggestions = generateDetailedSuggestions(
       originalText,
       detected,
@@ -806,7 +782,7 @@ export async function POST(req: Request) {
         entries: projects
       },
       ats,
-      suggestions: detailedSuggestions, // NEW!
+      suggestions: detailedSuggestions, 
       stats: {
         textLength: originalText.length,
         totalFound: ats.matched,

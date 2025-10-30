@@ -12,7 +12,7 @@ import {
   Loader2,
   Gauge,
   CheckCircle2,
-  XCircle,
+
   TrendingUp,
   Briefcase,
   FolderGit2,
@@ -20,6 +20,7 @@ import {
   Building2,
   ExternalLink,
   Tag,
+  Play,
 } from "lucide-react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
@@ -89,7 +90,7 @@ export default function TechStackPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /* -------------------- Load data from sessionStorage -------------------- */
+
   useEffect(() => {
     try {
       const storedData = sessionStorage.getItem("techData");
@@ -125,7 +126,7 @@ export default function TechStackPage() {
     ? Object.values(data).reduce((sum, arr) => sum + arr.length, 0)
     : 0;
 
-  /* -------------------- Loading / Error States -------------------- */
+
   if (isLoading) {
     return (
       <div className="h-screen flex flex-col justify-center items-center bg-gradient-to-b from-gray-50 to-gray-100">
@@ -149,7 +150,7 @@ export default function TechStackPage() {
     );
   }
 
-  /* -------------------- ATS Data -------------------- */
+
   const atsScore = ats?.score ?? 0;
   const atsFeedback = ats?.feedback ?? "Not available";
   const breakdown = ats?.breakdown;
@@ -174,11 +175,10 @@ export default function TechStackPage() {
           ? "text-yellow-600"
           : "text-red-600";
 
-  /* -------------------- Main UI -------------------- */
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-6 md:p-10">
       <div className="max-w-6xl mx-auto">
-        {/* -------------------- Header -------------------- */}
+
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
@@ -197,7 +197,7 @@ export default function TechStackPage() {
           </Link>
         </header>
 
-        {/* -------------------- Top Stats -------------------- */}
+
         <div className="bg-white rounded-xl shadow p-6 mb-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <StatCard label="Total Skills" value={totalTechCount} color="blue" />
           <StatCard label="Experience" value={experience?.count || 0} color="purple" />
@@ -205,7 +205,7 @@ export default function TechStackPage() {
           <StatCard label="ATS Score" value={`${atsScore}/100`} color="orange" />
         </div>
 
-        {/* -------------------- ATS Score Section -------------------- */}
+
         {atsScore > 0 && (
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-8">
             <div className="flex items-center gap-3 mb-4">
@@ -225,7 +225,7 @@ export default function TechStackPage() {
               <Progress value={atsScore} className="h-3 w-full" />
             </div>
 
-            {/* Score Breakdown */}
+
             {breakdown && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
                 <BreakdownItem label="Keywords" value={breakdown.keywords} max={40} />
@@ -235,7 +235,7 @@ export default function TechStackPage() {
               </div>
             )}
 
-            {/* Sections Found */}
+
             {sectionsFound.length > 0 && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -255,7 +255,7 @@ export default function TechStackPage() {
               </div>
             )}
 
-            {/* Skills Match Info */}
+
             {ats?.matched !== undefined && ats?.totalPossible !== undefined && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <p className="text-sm text-gray-600">
@@ -267,7 +267,7 @@ export default function TechStackPage() {
           </div>
         )}
 
-        {/* -------------------- Experience Section -------------------- */}
+
         {experience && experience.found && experience.entries.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-6">
@@ -285,7 +285,7 @@ export default function TechStackPage() {
           </div>
         )}
 
-        {/* -------------------- Projects Section -------------------- */}
+
         {projects && projects.found && projects.entries.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-6">
@@ -303,7 +303,7 @@ export default function TechStackPage() {
           </div>
         )}
 
-        {/* -------------------- Skills Sections -------------------- */}
+
         <div>
           <h1 className="text-4xl font-bold mb-6">Technical Skills</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -334,7 +334,7 @@ export default function TechStackPage() {
           </div>
         </div>
 
-        {/* -------------------- Suggestions Section -------------------- */}
+
         {suggestions.length > 0 && (
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 mb-8">
             <div className="flex items-center gap-3 mb-4">
@@ -354,7 +354,7 @@ export default function TechStackPage() {
           </div>
         )}
 
-        {/* -------------------- General Tips -------------------- */}
+
         <div className="mt-8 grid md:grid-cols-2 gap-6">
           {/* Grammar Tips */}
           <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200 hover:shadow-lg transition-all">
@@ -394,7 +394,6 @@ export default function TechStackPage() {
           </div>
         </div>
 
-        {/* -------------------- Footer Actions -------------------- */}
         <div className="mt-10 flex justify-center gap-4">
           <Link href="/resume">
             <Button variant="outline" size="lg">
@@ -425,16 +424,19 @@ export default function TechStackPage() {
           >
             Export Analysis
           </Button>
-          <Button size="lg">
-            Schedule Interview
-          </Button>
+          <Link href="/interview">
+            <Button size="lg" className="flex items-center gap-2">
+              <Play size={20} />
+              Schedule Interview
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-/* -------------------- Reusable Components -------------------- */
+
 function StatCard({
   label,
   value,

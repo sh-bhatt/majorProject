@@ -20,14 +20,14 @@ export default function ResumeUploadPage() {
     
     if (!selectedFile) return;
 
-    // Validate file type
+   
     if (selectedFile.type !== "application/pdf") {
       setError("Please upload a valid PDF file");
       setFile(null);
       return;
     }
 
-    // Validate file size (max 10MB)
+    
     const maxSize = 10 * 1024 * 1024;
     if (selectedFile.size > maxSize) {
       setError("File size must be less than 10MB");
@@ -69,7 +69,7 @@ export default function ResumeUploadPage() {
 
       console.log("📥 Response status:", res.status);
 
-      // Get response text first for better error handling
+      
       const responseText = await res.text();
       console.log("📄 Response:", responseText);
 
@@ -86,7 +86,7 @@ export default function ResumeUploadPage() {
         throw new Error(errorMessage);
       }
 
-      // Parse the successful response
+      
       let data;
       try {
         data = JSON.parse(responseText);
@@ -97,28 +97,27 @@ export default function ResumeUploadPage() {
 
       console.log("✅ Parsed data:", data);
 
-      // Check for error in response
+      
       if (data.error) {
         throw new Error(data.error);
       }
 
-      // Validate response structure
+     
       if (!data.success || !data.data) {
         throw new Error("Invalid response structure from server");
       }
 
-      // ✅ Save all data to sessionStorage
-      // 1. Tech skills data
+      
       sessionStorage.setItem("techData", JSON.stringify(data.data));
       console.log("✅ Saved techData:", data.data);
       
-      // 2. Stats data
+      
       if (data.stats) {
         sessionStorage.setItem("techStats", JSON.stringify(data.stats));
         console.log("✅ Saved techStats:", data.stats);
       }
 
-      // 3. ATS data
+      
       if (data.ats) {
         sessionStorage.setItem("atsData", JSON.stringify(data.ats));
         console.log("✅ Saved atsData:", data.ats);
@@ -128,7 +127,7 @@ export default function ResumeUploadPage() {
         console.warn("⚠️ No ATS data in response");
       }
 
-      // 4. Experience data (NEW)
+    
       if (data.experience) {
         sessionStorage.setItem("experienceData", JSON.stringify(data.experience));
         console.log("✅ Saved experienceData:", data.experience);
@@ -139,7 +138,7 @@ export default function ResumeUploadPage() {
         console.warn("⚠️ No experience data in response");
       }
 
-      // 5. Projects data (NEW)
+  
       if (data.projects) {
         sessionStorage.setItem("projectsData", JSON.stringify(data.projects));
         console.log("✅ Saved projectsData:", data.projects);
@@ -150,19 +149,19 @@ export default function ResumeUploadPage() {
         console.warn("⚠️ No projects data in response");
       }
 
-      // Verify all data was saved
+      
       const verifyATS = sessionStorage.getItem("atsData");
       const verifyExperience = sessionStorage.getItem("experienceData");
       const verifyProjects = sessionStorage.getItem("projectsData");
       
-      console.log("🔍 Verification:");
-      console.log("   - atsData:", verifyATS ? "✓" : "✗");
-      console.log("   - experienceData:", verifyExperience ? "✓" : "✗");
-      console.log("   - projectsData:", verifyProjects ? "✓" : "✗");
+      console.log("Verification:");
+      console.log("atsData:", verifyATS ? "✓" : "✗");
+      console.log("experienceData:", verifyExperience ? "✓" : "✗");
+      console.log("projectsData:", verifyProjects ? "✓" : "✗");
 
       console.log("✅ All data saved to sessionStorage, redirecting...");
 
-      // Redirect to tech stack page
+     
       router.push("/extract-tech");
 
     } catch (err: any) {
@@ -195,7 +194,7 @@ export default function ResumeUploadPage() {
           Upload your resume and let AI extract skills, experience, and projects.
         </p>
 
-        {/* Error Display */}
+        
         {error && (
           <div className="max-w-md mx-auto mb-6 p-4 bg-red-50 border-2 border-red-300 rounded-lg flex items-start gap-3">
             <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
@@ -203,7 +202,7 @@ export default function ResumeUploadPage() {
           </div>
         )}
 
-        {/* File Selected Display */}
+        
         {file && !error && (
           <div className="max-w-md mx-auto mb-6 p-4 bg-green-50 border-2 border-green-300 rounded-lg flex items-center gap-3">
             <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
@@ -217,7 +216,7 @@ export default function ResumeUploadPage() {
           </div>
         )}
 
-        {/* Upload Button (when no file) */}
+       
         {!file && (
           <div className="mt-8">
             <label htmlFor="file">
@@ -245,7 +244,7 @@ export default function ResumeUploadPage() {
           </div>
         )}
 
-        {/* Action Buttons (when file is selected) */}
+       
         {file && (
           <div className="flex flex-wrap justify-center gap-4 mt-8">
             <Button
@@ -290,7 +289,7 @@ export default function ResumeUploadPage() {
           </div>
         )}
 
-        {/* Loading Indicator */}
+       
         {loading && (
           <div className="mt-8 p-6 bg-blue-50 border-2 border-blue-300 rounded-lg max-w-md mx-auto">
             <div className="flex items-center justify-center gap-3">
@@ -310,5 +309,5 @@ export default function ResumeUploadPage() {
   );
 }
 
-// Add missing imports at the top
+
 

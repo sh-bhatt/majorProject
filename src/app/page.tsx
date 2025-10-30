@@ -9,9 +9,7 @@ export default function Home() {
     <div className=" h-screen bg-center"
       style={{ backgroundImage: "url(/images/bg.png)" }}>
       <header className={` flex justify-end p-4`}>
-        <Link href={"/signin"}>
-        <Button size='sm'>Sign In</Button>
-        </Link>
+        
       </header>
       <div >
         <h1 className={` text-9xl text-center ml-6 mr-6`}> The Interviewer </h1>
