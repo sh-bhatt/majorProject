@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   RotateCcw,
   Sparkles,
+  Play,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -250,6 +251,26 @@ export default function InterviewPage() {
             <RotateCcw size={20} className="mr-2" />
             Hide All Answers
           </Button>
+          <Link
+            href="/interview-simulation"
+            onClick={() => {
+              // Save questions to sessionStorage before navigation
+              if (questions && questions.length > 0) {
+                sessionStorage.setItem("interviewQuestions", JSON.stringify(questions));
+                console.log("✅ Saved questions to sessionStorage:", questions.length);
+              } else {
+                console.error("❌ No questions to save");
+              }
+            }}
+          >
+            <Button size="lg" className="flex items-center gap-2">
+              <Play size={20} />
+              Start Live Interview
+            </Button>
+          </Link>
+
+
+
         </div>
       </div>
     </div>

@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     if (!data.choices || !data.choices[0]?.message?.content) {
       console.error("Unexpected API response:", data);
       return NextResponse.json(
-        { error: "Invalid response from AI", details: "No content generated" },
+        { error: "Invalid response from Model", details: "No content generated" },
         { status: 500 }
       );
     }
@@ -72,9 +72,9 @@ export async function POST(req: Request) {
     if (questions.length === 0) {
       return NextResponse.json(
         { 
-          error: "Failed to parse AI response",
+          error: "Failed to parse  response",
           generatedContent: generatedContent.substring(0, 500),
-          hint: "The AI response format was unexpected"
+          hint: "The response format was unexpected"
         },
         { status: 500 }
       );
