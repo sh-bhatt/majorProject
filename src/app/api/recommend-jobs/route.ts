@@ -1,4 +1,3 @@
-// @ts-nocheck
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -18,7 +17,7 @@ export async function POST(req: Request) {
       ...(skills.tools || [])
     ];
 
-    // ✅ Fetch from ALL 4 APIs in parallel
+    // Fetch from ALL 4 APIs in parallel
     const [adzunaJobs, remotiveJobs, museJobs, arbeitnowJobs] = await Promise.all([
       fetchAdzunaJobs(skillsList, level, interviewScore),
       fetchRemotiveJobs(skillsList, level, interviewScore),
@@ -26,59 +25,44 @@ export async function POST(req: Request) {
       fetchArbeitnowJobs(skillsList, level, interviewScore)
     ]);
 
-    console.log(`📊 Job Sources:`);
-    console.log(`  - Adzuna: ${adzunaJobs.length} jobs`);
-    console.log(`  - Remotive: ${remotiveJobs.length} jobs`);
-    console.log(`  - The Muse: ${museJobs.length} jobs`);
-    console.log(`  - Arbeitnow: ${arbeitnowJobs.length} jobs`);
+    console.log(`📊 Adzuna: ${adzunaJobs.length}, Remotive: ${remotiveJobs.length}, Muse: ${museJobs.length}, Arbeitnow: ${arbeitnowJobs.length}`);
 
-    // Combine all sources
     let allJobs = [...adzunaJobs, ...remotiveJobs, ...museJobs, ...arbeitnowJobs];
-
-    // Remove duplicates
     allJobs = removeDuplicateJobs(allJobs);
-
-    // Rank by score and relevance
-    allJobs = rankJobsByScore(allJobs, interviewScore, skillsList);
+    allJobs = rankJobsByScore(allJobs, interviewScore);
 
     if (allJobs.length === 0) {
       return NextResponse.json({
         success: false,
         jobs: [],
-        source: "multiple-apis",
         message: "No jobs found matching your profile"
       });
     }
 
-    console.log(`✅ Total unique jobs: ${allJobs.length}`);
-
     return NextResponse.json({ 
       success: true, 
-      jobs: allJobs.slice(0, 20), // Top 20 jobs
+      jobs: allJobs.slice(0, 20),
       source: "multi-api",
       stats: {
         adzuna: adzunaJobs.length,
         remotive: remotiveJobs.length,
         themuse: museJobs.length,
         arbeitnow: arbeitnowJobs.length,
-        total: allJobs.length,
-        afterDedup: allJobs.length
+        total: allJobs.length
       }
     });
 
-  } catch (error: any) {
-    console.error("❌ Error fetching jobs:", error);
+  } catch (error: unknown) {
+    console.error("❌ Error:", error);
     return NextResponse.json({
       success: false,
       jobs: [],
-      source: "error",
-      message: "API failed to fetch jobs",
-      error: error.message
+      message: "API failed to fetch jobs"
     }, { status: 500 });
   }
 }
 
-// ===== API 1: ADZUNA (India-specific) =====
+// API 1: ADZUNA
 async function fetchAdzunaJobs(skills: string[], level: string, interviewScore: number) {
   try {
     const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID;
@@ -89,10 +73,7 @@ async function fetchAdzunaJobs(skills: string[], level: string, interviewScore: 
       return [];
     }
 
-    const searchQuery = skills.slice(0, 3).join(" OR ");
-    const experienceQuery = level === "Senior" ? "senior" : 
-                           level === "Mid-Level" ? "mid level" : "junior";
-
+    const searchQuery = skills.slice(0, 3).join(" OR ") || "developer";
     const locations = ["Bangalore", "Hyderabad", "Pune"];
     const allJobs: any[] = [];
 
@@ -101,7 +82,6 @@ async function fetchAdzunaJobs(skills: string[], level: string, interviewScore: 
         const url = `https://api.adzuna.com/v1/api/jobs/in/search/1?app_id=${ADZUNA_APP_ID}&app_key=${ADZUNA_APP_KEY}&what=${encodeURIComponent(searchQuery + " developer")}&where=${encodeURIComponent(location)}&results_per_page=8&sort_by=date`;
 
         const response = await fetch(url);
-        
         if (response.ok) {
           const data = await response.json();
           const jobs = data.results || [];
@@ -109,14 +89,14 @@ async function fetchAdzunaJobs(skills: string[], level: string, interviewScore: 
           jobs.forEach((job: any, index: number) => {
             allJobs.push({
               id: `adzuna-${location}-${index}-${Date.now()}`,
-              title: job.title,
+              title: job.title || "Developer",
               company: job.company?.display_name || "Company",
               location: job.location?.display_name || `${location}, India`,
-              salary: job.salary_min ? `₹${formatIndianSalary(job.salary_min)}-${formatIndianSalary(job.salary_max || job.salary_min * 1.5)} LPA` : "Competitive",
+              salary: job.salary_min ? `₹${(job.salary_min / 100000).toFixed(1)}-${((job.salary_max || job.salary_min * 1.5) / 100000).toFixed(1)} LPA` : "Competitive",
               type: job.contract_type || "Full-time",
-              experience: extractExperience(job.description) || "Not specified",
+              experience: "Not specified",
               skills: extractSkills(job.description, skills),
-              matchScore: calculateMatchScore(job, skills),
+              matchScore: calculateMatchScore(job, skills, interviewScore),
               description: cleanDescription(job.description),
               url: job.redirect_url,
               source: "adzuna",
@@ -125,22 +105,22 @@ async function fetchAdzunaJobs(skills: string[], level: string, interviewScore: 
           });
         }
       } catch (error) {
-        console.error(`Error fetching from ${location}:`, error);
+        console.error(`Adzuna ${location} error:`, error);
       }
       await new Promise(resolve => setTimeout(resolve, 150));
     }
 
-    return removeDuplicateJobs(allJobs);
+    return allJobs;
   } catch (error) {
     console.error("Adzuna error:", error);
     return [];
   }
 }
 
-// ===== API 2: REMOTIVE (Remote jobs) =====
+// API 2: REMOTIVE
 async function fetchRemotiveJobs(skills: string[], level: string, interviewScore: number) {
   try {
-    const searchQuery = skills.slice(0, 2).join(" ");
+    const searchQuery = skills.slice(0, 2).join(" ") || "developer";
     const url = `https://remotive.com/api/remote-jobs?search=${encodeURIComponent(searchQuery)}&limit=10`;
 
     const response = await fetch(url);
@@ -159,12 +139,12 @@ async function fetchRemotiveJobs(skills: string[], level: string, interviewScore
         id: `remotive-${index}-${Date.now()}`,
         title: job.title,
         company: job.company_name || "Remote Company",
-        location: job.candidate_required_location || "Remote (Worldwide)",
+        location: job.candidate_required_location || "Remote",
         salary: job.salary || "Competitive",
         type: job.job_type || "Full-time",
-        experience: extractExperience(job.description) || "Not specified",
+        experience: "Not specified",
         skills: extractSkills(job.description, skills),
-        matchScore: calculateMatchScore({ title: job.title, description: job.description }, skills),
+        matchScore: calculateMatchScore(job, skills, interviewScore),
         description: cleanDescription(job.description),
         url: job.url,
         source: "remotive",
@@ -176,10 +156,9 @@ async function fetchRemotiveJobs(skills: string[], level: string, interviewScore
   }
 }
 
-// ===== API 3: THE MUSE (Tech/Creative jobs) =====
+// API 3: THE MUSE
 async function fetchTheMuseJobs(skills: string[], level: string, interviewScore: number) {
   try {
-    const searchQuery = skills.slice(0, 2).join(" ");
     const url = `https://www.themuse.com/api/public/jobs?category=Software%20Engineering&location=Remote&page=1`;
 
     const response = await fetch(url);
@@ -203,9 +182,9 @@ async function fetchTheMuseJobs(skills: string[], level: string, interviewScore:
         type: job.type || "Full-time",
         experience: job.levels?.[0]?.name || "Not specified",
         skills: extractSkills(job.contents || "", skills),
-        matchScore: calculateMatchScore({ title: job.name, description: job.contents }, skills),
-        description: cleanDescription(job.contents || "View full description on The Muse"),
-        url: job.refs?.landing_page,
+        matchScore: calculateMatchScore(job, skills, interviewScore),
+        description: cleanDescription(job.contents || "View on The Muse"),
+        url: job.refs?.landing_page || "#",
         source: "themuse",
         postedDate: job.publication_date || new Date().toISOString()
       }));
@@ -215,7 +194,7 @@ async function fetchTheMuseJobs(skills: string[], level: string, interviewScore:
   }
 }
 
-// ===== API 4: ARBEITNOW (Startup jobs) =====
+// API 4: ARBEITNOW
 async function fetchArbeitnowJobs(skills: string[], level: string, interviewScore: number) {
   try {
     const url = `https://www.arbeitnow.com/api/job-board-api`;
@@ -244,9 +223,9 @@ async function fetchArbeitnowJobs(skills: string[], level: string, interviewScor
         type: job.job_types?.[0] || "Full-time",
         experience: "Not specified",
         skills: extractSkills(job.description, skills),
-        matchScore: calculateMatchScore(job, skills),
+        matchScore: calculateMatchScore(job, skills, interviewScore),
         description: cleanDescription(job.description),
-        url: job.url,
+        url: job.url || "#",
         source: "arbeitnow",
         postedDate: job.created_at || new Date().toISOString()
       }));
@@ -256,8 +235,7 @@ async function fetchArbeitnowJobs(skills: string[], level: string, interviewScor
   }
 }
 
-// ===== HELPER FUNCTIONS =====
-
+// HELPER FUNCTIONS
 function removeDuplicateJobs(jobs: any[]): any[] {
   const seen = new Set();
   return jobs.filter(job => {
@@ -276,25 +254,6 @@ function cleanDescription(description: string): string {
     .replace(/\s+/g, ' ')
     .trim();
   return cleaned.length > 250 ? cleaned.substring(0, 250) + "..." : cleaned;
-}
-
-function formatIndianSalary(annualSalary: number): string {
-  return (annualSalary / 100000).toFixed(1);
-}
-
-function extractExperience(description: string): string {
-  if (!description) return "";
-  const patterns = [
-    /(\d+)\s*[-to]+\s*(\d+)\s*(years?|yrs?)/i,
-    /(\d+)\+?\s*(years?|yrs?)/i,
-  ];
-  for (const pattern of patterns) {
-    const match = description.match(pattern);
-    if (match) {
-      return match[2] ? `${match[1]}-${match[2]} years` : `${match[1]}+ years`;
-    }
-  }
-  return "";
 }
 
 function extractSkills(description: string, candidateSkills: string[]): string[] {
@@ -322,8 +281,8 @@ function extractSkills(description: string, candidateSkills: string[]): string[]
   return foundSkills.slice(0, 8);
 }
 
-function calculateMatchScore(job: any, candidateSkills: string[]): number {
-  const jobText = ((job.title || "") + " " + (job.description || "")).toLowerCase();
+function calculateMatchScore(job: any, candidateSkills: string[], interviewScore: number): number {
+  const jobText = ((job.title || job.name || "") + " " + (job.description || job.contents || "")).toLowerCase();
   let matchCount = 0;
 
   candidateSkills.forEach(skill => {
@@ -334,24 +293,15 @@ function calculateMatchScore(job: any, candidateSkills: string[]): number {
 
   if (candidateSkills.length === 0) return 50;
   const matchPercentage = (matchCount / candidateSkills.length) * 100;
-  return Math.min(95, Math.round(40 + (matchPercentage * 0.55)));
+  const baseScore = Math.round(40 + (matchPercentage * 0.55));
+  return Math.min(95, baseScore + Math.round(interviewScore / 10));
 }
 
-function rankJobsByScore(jobs: any[], interviewScore: number, skills: string[]) {
-  return jobs
-    .map(job => ({
-      ...job,
-      adjustedMatchScore: Math.min(100, job.matchScore + (interviewScore / 10))
-    }))
-    .sort((a, b) => {
-      if (b.adjustedMatchScore !== a.adjustedMatchScore) {
-        return b.adjustedMatchScore - a.adjustedMatchScore;
-      }
-      return new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime();
-    })
-    .map(job => ({
-      ...job,
-      matchScore: Math.round(job.adjustedMatchScore)
-    }));
+function rankJobsByScore(jobs: any[], interviewScore: number): any[] {
+  return jobs.sort((a, b) => {
+    if (b.matchScore !== a.matchScore) {
+      return b.matchScore - a.matchScore;
+    }
+    return new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime();
+  });
 }
-nm
