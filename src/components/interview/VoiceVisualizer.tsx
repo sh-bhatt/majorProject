@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { Mic, MicOff } from 'lucide-react';
+import { Mic, MicOff } from "lucide-react";
 
 interface VoiceVisualizerProps {
   isListening: boolean;
@@ -7,72 +6,46 @@ interface VoiceVisualizerProps {
 }
 
 export function VoiceVisualizer({ isListening, isSpeaking }: VoiceVisualizerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationId: number;
-    let time = 0;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (isListening || isSpeaking) {
-        const bars = 50;
-        const barWidth = canvas.width / bars;
-
-        for (let i = 0; i < bars; i++) {
-          const height = Math.sin(time + i * 0.5) * 30 + 40;
-          const color = isListening ? '#3b82f6' : '#10b981';
-          
-          ctx.fillStyle = color;
-          ctx.fillRect(
-            i * barWidth,
-            canvas.height / 2 - height / 2,
-            barWidth - 2,
-            height
-          );
-        }
-
-        time += 0.1;
-      }
-
-      animationId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
-  }, [isListening, isSpeaking]);
-
   return (
-    <div className="relative">
-      <canvas
-        ref={canvasRef}
-        width={600}
-        height={100}
-        className="w-full h-24 rounded-lg bg-gray-100"
-      />
-      <div className="absolute inset-0 flex items-center justify-center">
-        {isListening ? (
-          <div className="flex items-center gap-2 text-blue-600">
-            <Mic size={32} className="animate-pulse" />
-            <span className="text-lg font-semibold">Listening...</span>
+    <div className="bg-white rounded-lg p-6 border-2 border-gray-200">
+      <div className="flex items-center justify-center gap-4 mb-4">
+        {isSpeaking && (
+          <div className="flex items-center gap-3 text-green-600">
+            
+            <span className="text-xl font-semibold">The Interviewer is asking...</span>
           </div>
-        ) : isSpeaking ? (
-          <div className="flex items-center gap-2 text-green-600">
+        )}
+        {isListening && (
+          <div className="flex items-center gap-3 text-blue-600">
             <Mic size={32} className="animate-pulse" />
-            <span className="text-lg font-semibold">AI Speaking...</span>
+            <span className="text-xl font-semibold">Listening to your answer...</span>
+          </div>
+        )}
+        {!isSpeaking && !isListening && (
+          <div className="flex items-center gap-3 text-gray-500">
+            <MicOff size={32} />
+            <span className="text-xl font-semibold">Ready to record</span>
+          </div>
+        )}
+      </div>
+
+      <div className="h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+        {(isListening || isSpeaking) ? (
+          <div className="flex items-center gap-1">
+            {[...Array(30)].map((_, i) => (
+              <div
+                key={i}
+                className={`w-1 rounded-full ${isListening ? 'bg-blue-500' : 'bg-green-500'}`}
+                style={{
+                  height: `${Math.random() * 60 + 20}px`,
+                  animation: 'wave 0.5s ease-in-out infinite',
+                  animationDelay: `${i * 0.05}s`
+                }}
+              />
+            ))}
           </div>
         ) : (
-          <MicOff size={32} className="text-gray-400" />
+          <span className="text-gray-400">Audio visualizer</span>
         )}
       </div>
     </div>

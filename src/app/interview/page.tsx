@@ -77,6 +77,8 @@ export default function InterviewPage() {
   const generateQuestions = async (skills: TechData, exp: any, proj: any) => {
     setIsGenerating(true);
     try {
+      console.log("🎯 Generating questions...");
+      
       const response = await fetch("/api/generate-questions", {
         method: "POST",
         headers: {
@@ -94,6 +96,8 @@ export default function InterviewPage() {
       }
 
       const result = await response.json();
+      console.log("✅ Generated", result.questions.length, "questions");
+      
       setQuestions(result.questions);
     } catch (err: any) {
       console.error("Error generating questions:", err);
@@ -104,9 +108,26 @@ export default function InterviewPage() {
     }
   };
 
+  // ✅ FIXED: Proper regeneration with cache clearing
   const regenerateQuestions = async () => {
     setShowAnswers({});
-    await generateQuestions(data!, experience, projects);
+    setIsGenerating(true);
+    
+    try {
+      // ✅ Clear cached questions to force new generation
+      sessionStorage.removeItem("interviewQuestions");
+      
+      console.log("🔄 Regenerating FRESH questions...");
+      
+      if (data) {
+        await generateQuestions(data, experience, projects);
+      }
+    } catch (err) {
+      console.error("Error regenerating:", err);
+      setError("Failed to regenerate questions.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const toggleAnswer = (id: number) => {
@@ -189,7 +210,7 @@ export default function InterviewPage() {
           </div>
         </div>
 
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <div className="flex flex-wrap gap-2">
             {categories.map(cat => (
               <Button
@@ -226,22 +247,30 @@ export default function InterviewPage() {
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-16 h-16 animate-spin text-blue-600 mb-4" />
             <p className="text-lg text-gray-600">The Interviewer is generating new questions...</p>
+            <p className="text-sm text-gray-500 mt-2">Creating unique and diverse questions</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredQuestions.map((q, index) => (
-              <QuestionCard
-                key={q.id}
-                question={q}
-                index={index + 1}
-                showAnswer={showAnswers[q.id] || false}
-                onToggleAnswer={() => toggleAnswer(q.id)}
-              />
-            ))}
+            {filteredQuestions.length > 0 ? (
+              filteredQuestions.map((q, index) => (
+                <QuestionCard
+                  key={q.id}
+                  question={q}
+                  index={index + 1}
+                  showAnswer={showAnswers[q.id] || false}
+                  onToggleAnswer={() => toggleAnswer(q.id)}
+                />
+              ))
+            ) : (
+              <div className="text-center py-10">
+                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No questions in this category</p>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="mt-10 flex justify-center gap-4">
+        <div className="mt-10 flex justify-center gap-4 flex-wrap">
           <Link href="/extract-tech">
             <Button variant="outline" size="lg">
               Back to Analysis
@@ -254,13 +283,8 @@ export default function InterviewPage() {
           <Link
             href="/interview-simulation"
             onClick={() => {
-              // Save questions to sessionStorage before navigation
-              if (questions && questions.length > 0) {
-                sessionStorage.setItem("interviewQuestions", JSON.stringify(questions));
-                console.log("✅ Saved questions to sessionStorage:", questions.length);
-              } else {
-                console.error("❌ No questions to save");
-              }
+              // ✅ Don't save old questions - simulation will generate fresh ones
+              console.log("🎤 Starting live interview simulation");
             }}
           >
             <Button size="lg" className="flex items-center gap-2">
@@ -268,9 +292,6 @@ export default function InterviewPage() {
               Start Live Interview
             </Button>
           </Link>
-
-
-
         </div>
       </div>
     </div>

@@ -7,16 +7,115 @@ export async function POST(req: Request) {
   try {
     const { skills, experience, projects } = await req.json();
 
-    const prompt = buildPrompt(skills, experience, projects);
+    if (!skills) {
+      return NextResponse.json(
+        { error: "No skills data provided" },
+        { status: 400 }
+      );
+    }
 
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
     if (!GROQ_API_KEY) {
       return NextResponse.json(
-        { error: "API key not configured. Please add GROQ_API_KEY to your .env.local file" },
+        { error: "API key not configured" },
         { status: 500 }
       );
     }
+
+    console.log("🎯 Generating VERBAL interview questions (no coding required)...");
+
+    // Extract skills data
+    const programmingLanguages = skills.programming_languages || [];
+    const technologies = skills.technologies || [];
+    const tools = skills.tools || [];
+    const coursework = skills.coursework || [];
+
+    // Build context
+    let context = `Generate 20 VERBAL INTERVIEW QUESTIONS (no coding/typing required) for a candidate with:\n\n`;
+    
+    if (programmingLanguages.length > 0) {
+      context += `Programming Languages: ${programmingLanguages.join(", ")}\n`;
+    }
+    if (technologies.length > 0) {
+      context += `Technologies: ${technologies.join(", ")}\n`;
+    }
+    if (tools.length > 0) {
+      context += `Tools: ${tools.join(", ")}\n`;
+    }
+    if (coursework.length > 0) {
+      context += `Coursework: ${coursework.join(", ")}\n`;
+    }
+
+    // Add experience context
+    if (experience && experience.found && experience.entries) {
+      context += `\nWork Experience:\n`;
+      experience.entries.forEach((exp: any, index: number) => {
+        context += `${index + 1}. ${exp.title || 'Position'} at ${exp.company || 'Company'}\n`;
+        if (exp.description) context += `   ${exp.description.substring(0, 150)}...\n`;
+      });
+    }
+
+    // Add projects context
+    if (projects && projects.found && projects.entries) {
+      context += `\nProjects:\n`;
+      projects.entries.forEach((proj: any, index: number) => {
+        context += `${index + 1}. ${proj.name || 'Project'}\n`;
+        if (proj.description) context += `   ${proj.description.substring(0, 150)}...\n`;
+      });
+    }
+
+    const randomSeed = Date.now();
+
+    const prompt = `${context}
+
+**CRITICAL REQUIREMENTS - VERBAL QUESTIONS ONLY:**
+
+1. Generate questions that can be answered VERBALLY (spoken out loud)
+2. NO questions requiring code snippets, typing, or writing code
+3. Focus on EXPLANATION, CONCEPTS, SCENARIOS, and DISCUSSION
+4. Questions should test understanding through VERBAL EXPLANATION
+
+**Question Types to Include:**
+- "Explain how..." (concept explanation)
+- "What is the difference between..." (comparison)
+- "Describe a scenario where..." (real-world application)
+- "Walk me through your thought process for..." (problem-solving approach)
+- "How would you approach..." (methodology discussion)
+- "What are the advantages and disadvantages of..." (analysis)
+- "Tell me about a time when..." (experience-based)
+- "Why would you use X over Y?" (decision-making)
+- "How does X work internally?" (deep understanding)
+- "What factors would you consider when..." (architectural thinking)
+
+**AVOID:**
+- "Write a function to..."
+- "Implement..."
+- "Code a solution for..."
+- Questions requiring syntax or code examples
+- Algorithm implementation questions
+- Any question needing a code editor
+
+**Distribution:**
+- 6 Easy (fundamental concepts, definitions, basic comparisons)
+- 11 Medium (scenarios, trade-offs, design decisions, problem-solving approaches)
+- 3 Hard (complex system design, architectural decisions, advanced concepts)
+
+**Uniqueness Seed:** ${randomSeed}
+
+Return ONLY valid JSON:
+[
+  {
+    "id": 1,
+    "category": "Technical" | "Behavioral" | "System Design" | "Project-Specific" | "Experience-Based",
+    "topic": "Brief topic",
+    "question": "Verbal question that can be spoken and answered without typing code",
+    "answer": "Expected verbal answer with key concepts and explanation",
+    "difficulty": "Easy" | "Medium" | "Hard"
+  }
+]
+
+Generate 20 UNIQUE verbal questions NOW:`;
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -29,161 +128,71 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "system",
-            content: "You are an expert technical interviewer. Generate interview questions in valid JSON format only."
+            content: "You are an expert technical interviewer who creates VERBAL interview questions that test understanding through spoken explanation. NEVER ask questions requiring code writing or typing. Focus on conceptual understanding, problem-solving approaches, and real-world scenarios that can be explained verbally."
           },
           {
             role: "user",
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
+        temperature: 1.2,
+        max_tokens: 4000,
+        top_p: 0.95,
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Groq API Error:", errorData);
-      return NextResponse.json(
-        { 
-          error: "Failed to generate questions", 
-          details: errorData.error?.message || "Unknown error",
-          hint: "Check if your GROQ_API_KEY is valid"
-        },
-        { status: 500 }
-      );
+      const errorText = await response.text();
+      console.error("Groq API Error:", errorText);
+      throw new Error("Failed to generate questions");
     }
 
     const data = await response.json();
-    
-    if (!data.choices || !data.choices[0]?.message?.content) {
-      console.error("Unexpected API response:", data);
-      return NextResponse.json(
-        { error: "Invalid response from Model", details: "No content generated" },
-        { status: 500 }
-      );
+    const content = data.choices[0].message.content;
+
+    console.log("📝 Raw AI response (first 200 chars):", content.substring(0, 200));
+
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.error("No JSON found in response");
+      throw new Error("Invalid response format");
     }
 
-    const generatedContent = data.choices[0].message.content;
-    console.log("Generated content:", generatedContent.substring(0, 200));
+    let questions = JSON.parse(jsonMatch[0]);
 
-    const questions = parseAIResponse(generatedContent);
-
-    if (questions.length === 0) {
-      return NextResponse.json(
-        { 
-          error: "Failed to parse  response",
-          generatedContent: generatedContent.substring(0, 500),
-          hint: "The response format was unexpected"
-        },
-        { status: 500 }
-      );
+    if (questions.length < 20) {
+      console.warn(`Only got ${questions.length} questions, expected 20`);
     }
+
+    questions = questions.map((q: any, index: number) => ({
+      ...q,
+      id: index + 1
+    }));
+
+    console.log(`✅ Generated ${questions.length} VERBAL questions (no coding required)`);
+    console.log("📊 Categories:", [...new Set(questions.map((q: any) => q.category))].join(", "));
 
     return NextResponse.json({
       success: true,
       questions: questions,
-      total: questions.length,
+      stats: {
+        total: questions.length,
+        easy: questions.filter((q: any) => q.difficulty === "Easy").length,
+        medium: questions.filter((q: any) => q.difficulty === "Medium").length,
+        hard: questions.filter((q: any) => q.difficulty === "Hard").length,
+        categories: [...new Set(questions.map((q: any) => q.category))],
+        type: "verbal-only" // ✅ Indicates these are verbal questions
+      }
     });
+
   } catch (error: any) {
-    console.error("Error generating questions:", error);
+    console.error("❌ Error generating questions:", error);
     return NextResponse.json(
       { 
         error: "Failed to generate questions", 
-        details: error.message
+        details: error.message 
       },
       { status: 500 }
     );
-  }
-}
-
-function buildPrompt(skills: any, experience: any, projects: any) {
-  const allSkills = [
-    ...(skills.programming_languages || []),
-    ...(skills.technologies || []),
-    ...(skills.tools || []),
-  ].slice(0, 15);
-
-  const projectNames = projects?.entries?.map((p: any) => p.name).slice(0, 3) || [];
-  const experienceRoles = experience?.entries?.map((e: any) => e.position).slice(0, 2) || [];
-
-  return `You are an expert technical interviewer. Generate 20 interview questions in VALID JSON format ONLY.
-
-Candidate Profile:
-- Skills: ${allSkills.join(", ")}
-- Projects: ${projectNames.join(", ") || "None"}
-- Experience: ${experienceRoles.join(", ") || "Entry Level"}
-
-Return ONLY this JSON array with NO markdown, NO backticks, NO extra text:
-
-[
-  {
-    "category": "Technical",
-    "topic": "JavaScript",
-    "question": "Explain closures",
-    "answer": "A closure is a function that has access to variables in its outer scope...",
-    "difficulty": "Medium"
-  }
-]
-
-Generate 20 questions total:
-- 10 Technical (covering: ${allSkills.slice(0, 5).join(", ")})
-- 3 Behavioral
-- 2 System Design
-- 3 Project-specific
-- 2 Experience-based
-
-Difficulty levels: 6 Easy, 10 Medium, 4 Hard
-
-RETURN ONLY VALID JSON ARRAY. No markdown, no backticks, no explanation.`;
-}
-
-function parseAIResponse(content: string): any[] {
-  try {
-    let cleanedContent = content.trim();
-    
-    const codeBlockStart = "```"
-    const codeBlockEnd = "```";
-    
-    if (cleanedContent.startsWith(codeBlockStart)) {
-      cleanedContent = cleanedContent
-        .replace(new RegExp(`^${codeBlockStart}\\n?`), "")
-        .replace(new RegExp(`${codeBlockEnd}\\n?$`), "");
-    } else if (cleanedContent.startsWith(codeBlockEnd)) {
-      cleanedContent = cleanedContent
-        .replace(new RegExp(`^${codeBlockEnd}\\n?`), "")
-        .replace(new RegExp(`${codeBlockEnd}\\n?$`), "");
-    }
-    
-    cleanedContent = cleanedContent.trim();
-
-    const jsonMatch = cleanedContent.match(/\[[\s\S]*\]/);
-    
-    if (!jsonMatch) {
-      console.error("No JSON array found in response");
-      return [];
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-    
-    if (!Array.isArray(parsed)) {
-      console.error("Parsed content is not an array");
-      return [];
-    }
-
-    return parsed
-      .filter((q: any) => q.question && q.answer)
-      .map((q: any, index: number) => ({
-        id: index + 1,
-        category: q.category || "General",
-        topic: q.topic || "Interview Question",
-        question: q.question || "",
-        answer: q.answer || "",
-        difficulty: q.difficulty || "Medium",
-      }));
-  } catch (error) {
-    console.error("Error parsing AI response:", error);
-    console.error("Content that failed to parse:", content.substring(0, 500));
-    return [];
   }
 }

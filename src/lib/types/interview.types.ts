@@ -3,20 +3,11 @@ export interface InterviewQuestion {
   category: string;
   topic: string;
   question: string;
-  expectedAnswer: string;
+  answer: string;
   difficulty: "Easy" | "Medium" | "Hard";
 }
 
-export interface InterviewAnswer {
-  questionId: number;
-  question: string;
-  userAnswer: string;
-  expectedAnswer: string;
-  timestamp: number;
-  duration: number;
-}
-
-export interface InterviewFeedback {
+export interface FeedbackItem {
   questionId: number;
   question: string;
   userAnswer: string;
@@ -28,10 +19,29 @@ export interface InterviewFeedback {
 }
 
 export interface InterviewSession {
-  questions: InterviewQuestion[];
-  answers: InterviewAnswer[];
-  currentQuestionIndex: number;
-  isActive: boolean;
   startTime: number;
   endTime?: number;
+  currentQuestionIndex: number;
+  answers: string[];
+  questions: InterviewQuestion[];
+}
+
+export interface TechData {
+  programming_languages: string[];
+  technologies: string[];
+  tools: string[];
+  coursework: string[];
+}
+
+export interface ExperienceEntry {
+  title?: string;
+  company?: string;
+  description?: string;
+  duration?: string;
+}
+
+export interface ProjectEntry {
+  name?: string;
+  description?: string;
+  technologies?: string[];
 }

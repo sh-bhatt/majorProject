@@ -1,33 +1,31 @@
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, SkipForward, StopCircle } from "lucide-react";
+import { Mic, MicOff, ArrowRight, SkipForward, StopCircle } from "lucide-react";
 
 interface InterviewControlsProps {
   isListening: boolean;
   isSpeaking: boolean;
+  hasTranscript: boolean;
   onStartListening: () => void;
   onStopListening: () => void;
+  onNextQuestion: () => void;
   onSkip: () => void;
-  onEndInterview: () => void;
-  canSkip: boolean;
+  onEnd: () => void;
 }
 
 export function InterviewControls({
   isListening,
   isSpeaking,
+  hasTranscript,
   onStartListening,
   onStopListening,
+  onNextQuestion,
   onSkip,
-  onEndInterview,
-  canSkip
+  onEnd,
 }: InterviewControlsProps) {
   return (
-    <div className="flex items-center justify-center gap-4">
+    <div className="flex flex-wrap items-center justify-center gap-4">
       {!isListening && !isSpeaking && (
-        <Button
-          size="lg"
-          onClick={onStartListening}
-          className="px-8 py-6 text-lg"
-        >
+        <Button size="lg" onClick={onStartListening} className="px-10 py-6 text-lg">
           <Mic size={24} className="mr-2" />
           Start Answering
         </Button>
@@ -38,35 +36,37 @@ export function InterviewControls({
           size="lg"
           variant="destructive"
           onClick={onStopListening}
-          className="px-8 py-6 text-lg"
+          className="px-10 py-6 text-lg"
         >
           <MicOff size={24} className="mr-2" />
-          Stop Recording
+          Done Answering
         </Button>
       )}
 
-      {canSkip && (
+      {!isListening && !isSpeaking && hasTranscript && (
         <Button
           size="lg"
-          variant="outline"
-          onClick={onSkip}
-          disabled={isSpeaking}
-          className="px-6 py-6"
+          onClick={onNextQuestion}
+          className="px-10 py-6 text-lg bg-green-600 hover:bg-green-700"
         >
-          <SkipForward size={20} className="mr-2" />
-          Skip Question
+          <ArrowRight size={24} className="mr-2" />
+          Next Question
         </Button>
       )}
 
-      <Button
-        size="lg"
-        variant="secondary"
-        onClick={onEndInterview}
-        className="px-6 py-6"
-      >
-        <StopCircle size={20} className="mr-2" />
-        End Interview
-      </Button>
+      {!isListening && !isSpeaking && (
+        <>
+          <Button size="lg" variant="outline" onClick={onSkip} className="px-8 py-6">
+            <SkipForward size={20} className="mr-2" />
+            Skip Question
+          </Button>
+
+          <Button size="lg" variant="secondary" onClick={onEnd} className="px-8 py-6">
+            <StopCircle size={20} className="mr-2" />
+            End Interview
+          </Button>
+        </>
+      )}
     </div>
   );
 }
